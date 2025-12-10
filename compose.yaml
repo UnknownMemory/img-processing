@@ -1,0 +1,31 @@
+name: img-processing
+
+services:
+  postgres:
+    image: postgres:18.1-alpine
+    environment:
+      - POSTGRES_DB=img_process
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+  
+  rabbitmq:
+    image: rabbitmq:4.2-management
+    environment:
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=admin
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+    volumes:
+      - rabbitmq_data:/data
+    restart: unless-stopped
+
+
+volumes:
+  postgres_data:
+  rabbitmq_data:
