@@ -25,7 +25,21 @@ services:
       - rabbitmq_data:/data
     restart: unless-stopped
 
+  garage:
+    image: dxflrs/garage:v2.1.0
+    ports:
+      - "3900:3900"
+      - "3901:3901"
+      - "3902:3902"
+    volumes:
+      - ./garage.toml:/etc/garage.toml
+      - garage_meta:/var/lib/garage/meta/
+      - garage_data:/var/lib/garage/data/
+    restart: unless-stopped
+
 
 volumes:
   postgres_data:
   rabbitmq_data:
+  garage_meta:
+  garage_data:

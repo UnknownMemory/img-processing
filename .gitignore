@@ -1,9 +1,9 @@
-*.exe
-
-.env
-
 # Editor/IDE
 .idea/
 .vscode/
 
 ./bin
+*.exe
+
+.env
+garage.toml
