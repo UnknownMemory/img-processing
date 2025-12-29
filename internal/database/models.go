@@ -5,26 +5,23 @@
 package db
 
 import (
-	"database/sql"
-	"time"
-
-	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Image struct {
-	ID        int64         `json:"id"`
-	Url       string        `json:"url"`
-	CreatedAt time.Time     `json:"created_at"`
-	UserID    sql.NullInt64 `json:"user_id"`
-	Uid       uuid.UUID     `json:"uid"`
-	Filename  string        `json:"filename"`
-	Mime      string        `json:"mime"`
-	FileSize  sql.NullInt64 `json:"file_size"`
+	ID        int64            `json:"id"`
+	Url       string           `json:"url"`
+	CreatedAt pgtype.Timestamp `json:"created_at"`
+	UserID    pgtype.Int8      `json:"user_id"`
+	Uid       pgtype.UUID      `json:"uid"`
+	Filename  string           `json:"filename"`
+	Mime      string           `json:"mime"`
+	FileSize  pgtype.Int8      `json:"file_size"`
 }
 
 type User struct {
-	ID        int64     `json:"id"`
-	Username  string    `json:"username"`
-	Password  string    `json:"password"`
-	CreatedAt time.Time `json:"created_at"`
+	ID        int64            `json:"id"`
+	Username  string           `json:"username"`
+	Password  string           `json:"password"`
+	CreatedAt pgtype.Timestamp `json:"created_at"`
 }

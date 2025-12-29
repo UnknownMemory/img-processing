@@ -19,6 +19,6 @@ type CreateUserParams struct {
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) error {
-	_, err := q.exec(ctx, q.createUserStmt, createUser, arg.Username, arg.Password)
+	_, err := q.db.Exec(ctx, createUser, arg.Username, arg.Password)
 	return err
 }
