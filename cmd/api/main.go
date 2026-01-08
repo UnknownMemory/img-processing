@@ -11,59 +11,42 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
+	"github.com/unknownmemory/img-processing/internal/api"
 )
 
 const version = "0.1.0"
-
-type config struct {
-	port int
-	mode string
-	db   struct {
-		dsn string
-	}
-}
-
-type application struct {
-	config config
-	logger *log.Logger
-	db     *pgxpool.Pool
-}
 
 func main() {
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
-	var cfg config
+	var cfg api.Config
 
-	cfg.port, _ = strconv.Atoi(os.Getenv("PORT"))
-	cfg.mode = os.Getenv("MODE")
-	cfg.db.dsn = os.Getenv("DB_DSN")
+	cfg.Port, _ = strconv.Atoi(os.Getenv("PORT"))
+	cfg.Mode = os.Getenv("MODE")
+	cfg.DB.DSN = os.Getenv("DB_DSN")
 
 	logger := log.New(os.Stdout, "", log.Ldate|log.Ltime)
 
-	db, err := pgxpool.New(context.Background(), cfg.db.dsn)
+	db, err := pgxpool.New(context.Background(), cfg.DB.DSN)
 	if err != nil {
 		log.Fatalf("Unable to create connection pool: %v\n", err)
 	}
 
 	defer db.Close()
 
-	app := &application{
-		config: cfg,
-		logger: logger,
-		db:     db,
-	}
+	app := api.NewApplication(cfg, logger, db, version)
 
 	server := &http.Server{
-		Addr:         fmt.Sprintf(":%d", cfg.port),
-		Handler:      app.routes(),
+		Addr:         fmt.Sprintf(":%d", cfg.Port),
+		Handler:      app.Routes(),
 		IdleTimeout:  time.Minute,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 30 * time.Second,
 	}
 
-	logger.Printf("starting %s server on %s", cfg.mode, server.Addr)
+	logger.Printf("starting %s server on %s", cfg.Mode, server.Addr)
 	err = server.ListenAndServe()
 	logger.Fatal(err)
 }

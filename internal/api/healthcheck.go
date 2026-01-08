@@ -1,12 +1,12 @@
-package main
+package api
 
 import (
 	"encoding/json"
 	"net/http"
 )
 
-func (app *application) healthcheckHandler(w http.ResponseWriter, r *http.Request) {
-	data := map[string]string{"status": "available", "environment": app.config.mode, "version": version}
+func (app *Application) healthcheckHandler(w http.ResponseWriter, r *http.Request) {
+	data := map[string]string{"status": "available", "environment": app.config.Mode, "version": app.version}
 
 	dataJson, err := json.Marshal(data)
 	if err != nil {

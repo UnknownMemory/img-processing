@@ -1,4 +1,4 @@
-package main
+package api
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Request) {
+func (app *Application) registerUserHandler(w http.ResponseWriter, r *http.Request) {
 	data := &db.CreateUserParams{}
 	err := json.NewDecoder(r.Body).Decode(data)
 	if err != nil {
