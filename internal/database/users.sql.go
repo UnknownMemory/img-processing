@@ -10,7 +10,8 @@ import (
 )
 
 const createUser = `-- name: CreateUser :exec
-INSERT INTO users (username, password) VALUES ($1, $2)
+INSERT INTO users (username, password)
+VALUES ($1, $2)
 `
 
 type CreateUserParams struct {
@@ -21,4 +22,21 @@ type CreateUserParams struct {
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) error {
 	_, err := q.db.Exec(ctx, createUser, arg.Username, arg.Password)
 	return err
+}
+
+const getUser = `-- name: GetUser :one
+SELECT id, username, password, created_at FROM users
+WHERE username = $1
+`
+
+func (q *Queries) GetUser(ctx context.Context, username string) (User, error) {
+	row := q.db.QueryRow(ctx, getUser, username)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.Password,
+		&i.CreatedAt,
+	)
+	return i, err
 }
