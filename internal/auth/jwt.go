@@ -16,9 +16,9 @@ func GenerateTokens(userId int64) (*Tokens, error) {
 	key := []byte(os.Getenv("JWT_SECRET_KEY"))
 
 	accessT := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"user": userId,
-		"iat":  time.Now().Unix(),
-		"exp":  time.Now().Add(time.Hour * 1).Unix(),
+		"sub": userId,
+		"iat": time.Now().Unix(),
+		"exp": time.Now().Add(time.Hour * 1).Unix(),
 	})
 	accessToken, err := accessT.SignedString(key)
 	if err != nil {
@@ -26,9 +26,9 @@ func GenerateTokens(userId int64) (*Tokens, error) {
 	}
 
 	refreshT := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"user": userId,
-		"iat":  time.Now().Unix(),
-		"exp":  time.Now().Add(time.Hour * 168).Unix(),
+		"sub": userId,
+		"iat": time.Now().Unix(),
+		"exp": time.Now().Add(time.Hour * 168).Unix(),
 	})
 
 	refreshToken, err := refreshT.SignedString([]byte(os.Getenv("JWT_SECRET_KEY")))
