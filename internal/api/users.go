@@ -33,7 +33,7 @@ func (app *Application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		http.Error(w, "Could not register user", http.StatusInternalServerError)
 		return
 	}
-
+	
 	w.WriteHeader(http.StatusCreated)
 }
 
@@ -75,10 +75,10 @@ func (app *Application) loginUserHandler(w http.ResponseWriter, r *http.Request)
 		Path:     "/api/v1/token/refresh",
 		Expires:  time.Now().Add(time.Hour * 168),
 	}
-
 	http.SetCookie(w, &refreshCookie)
-	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(map[string]string{"accessToken": tokens.AccessToken})
+
+	jsData := map[string]string{"accessToken": tokens.AccessToken}
+	err = app.writeJSON(w, http.StatusOK, jsData, nil)
 	if err != nil {
 		app.logger.Println(err)
 		http.Error(w, "The server encountered a problem and could not process your request", http.StatusInternalServerError)

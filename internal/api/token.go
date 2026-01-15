@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/json"
 	"net/http"
 	"os"
 	"time"
@@ -62,7 +61,8 @@ func (app *Application) refreshTokenHandler(w http.ResponseWriter, r *http.Reque
 
 	http.SetCookie(w, &refreshCookie)
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(map[string]string{"accessToken": tokens.AccessToken})
+	jsData := map[string]string{"accessToken": tokens.AccessToken}
+	err = app.writeJSON(w, http.StatusOK, jsData, nil)
 	if err != nil {
 		app.logger.Println(err)
 		http.Error(w, "The server encountered a problem and could not process your request", http.StatusInternalServerError)
