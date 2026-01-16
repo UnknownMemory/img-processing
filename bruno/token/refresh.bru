@@ -10,6 +10,11 @@ get {
   auth: inherit
 }
 
+script:post-response {
+  bru.setEnvVar("accessToken", res.body.accessToken)
+  
+}
+
 settings {
   encodeUrl: true
   timeout: 0
