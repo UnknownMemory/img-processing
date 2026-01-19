@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/unknownmemory/img-processing/internal/aws"
 )
 
 type Config struct {
@@ -18,6 +19,7 @@ type Application struct {
 	config  Config
 	logger  *log.Logger
 	db      *pgxpool.Pool
+	s3      *aws.S3Client
 	version string
 }
 
@@ -26,6 +28,7 @@ func NewApplication(cfg Config, logger *log.Logger, db *pgxpool.Pool, version st
 		config:  cfg,
 		logger:  logger,
 		db:      db,
+		s3:      aws.NewS3Client(),
 		version: version,
 	}
 }

@@ -11,7 +11,7 @@ rpc_bind_addr = "[::]:3901"
 rpc_secret = "<RPC_SECRET>"
 
 [s3_api]
-s3_region = "img-process"
+s3_region = "garage"
 api_bind_addr = "[::]:3900"
 root_domain = ".s3.garage"
 
