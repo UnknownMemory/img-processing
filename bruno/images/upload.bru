@@ -1,0 +1,24 @@
+meta {
+  name: upload
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{url_v1}}/images/upload
+  body: multipartForm
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:multipart-form {
+  image-upload: @file(C:\Users\tensh\Documents\GitHub\img-processing\mario-alberto-meza-rodriguez-dx8PcHSjF1Y-unsplash.jpg) @contentType(image/jpeg)
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
