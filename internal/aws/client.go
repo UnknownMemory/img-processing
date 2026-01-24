@@ -2,6 +2,8 @@ package aws
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"log"
 	"os"
 
@@ -12,7 +14,9 @@ import (
 )
 
 type S3Client struct {
-	Client *s3.Client
+	Client          *s3.Client
+	BucketURL       string
+	BucketPublicURL string
 }
 
 func NewS3Client() *S3Client {
@@ -25,7 +29,8 @@ func NewS3Client() *S3Client {
 		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(accessKey, secretKey, "")),
 	)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
+		return nil
 	}
 
 	client := s3.NewFromConfig(cfg, func(options *s3.Options) {
@@ -34,6 +39,22 @@ func NewS3Client() *S3Client {
 	})
 
 	return &S3Client{
-		Client: client,
+		Client:          client,
+		BucketURL:       fmt.Sprintf("%s/%s", os.Getenv("S3_ENDPOINT"), os.Getenv("S3_BUCKET")),
+		BucketPublicURL: fmt.Sprintf("%s", os.Getenv("S3_PUBLIC_ENDPOINT")),
 	}
+}
+
+func (s3Client *S3Client) Upload(objectName string, file io.ReadSeeker) (*s3.PutObjectOutput, error) {
+	object, err := s3Client.Client.PutObject(context.TODO(), &s3.PutObjectInput{
+		Bucket: aws.String(os.Getenv("S3_BUCKET")),
+		Key:    aws.String(objectName),
+		Body:   file,
+	})
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	return object, nil
 }
