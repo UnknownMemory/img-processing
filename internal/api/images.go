@@ -1,12 +1,16 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/jackc/pgx/v5/pgtype"
+	db "github.com/unknownmemory/img-processing/internal/database"
 )
 
 func (app *Application) uploadImageHandler(w http.ResponseWriter, r *http.Request) {
@@ -50,20 +54,39 @@ func (app *Application) uploadImageHandler(w http.ResponseWriter, r *http.Reques
 		http.Error(w, "An error occurred during the upload", http.StatusBadRequest)
 	}
 
-	_, err = app.s3.Upload(handler.Filename, file)
+	userId := r.Context().Value("user_id").(int64)
+	key := fmt.Sprintf("%d/%s/original", userId, handler.Filename)
+	_, err = app.s3.Upload(key, file, mimeType)
 	if err != nil {
 		app.logger.Println(err)
 		http.Error(w, "An error occurred during the upload", http.StatusBadRequest)
 		return
 	}
 
+	url := fmt.Sprintf("%s/%s", app.s3.BucketPublicURL, key)
+	data := &db.CreateImageParams{
+		UserID:   pgtype.Int8{Int64: userId, Valid: true},
+		Filename: handler.Filename,
+		FileSize: pgtype.Int8{Int64: handler.Size, Valid: true},
+		Mime:     mimeType,
+		Url:      url,
+	}
+
+	q := db.New(app.db)
+	err = q.CreateImage(context.Background(), *data)
+	if err != nil {
+		app.logger.Println(err)
+		http.Error(w, "An error occurred during the upload", http.StatusInternalServerError)
+		return
+	}
+
 	fileData := map[string]string{
 		"filename": handler.Filename,
 		"size":     strconv.FormatInt(handler.Size, 10),
-		"url":      fmt.Sprintf("%s/%s", app.s3.BucketPublicURL, handler.Filename),
+		"url":      url,
 	}
 
-	err = app.writeJSON(w, http.StatusOK, fileData, nil)
+	err = app.writeJSON(w, http.StatusCreated, fileData, nil)
 	if err != nil {
 		app.logger.Println(err)
 		http.Error(w, "The server encountered a problem and could not process your request", http.StatusInternalServerError)
