@@ -10,7 +10,6 @@ import (
 
 type Image struct {
 	ID        int64            `json:"id"`
-	Url       string           `json:"url"`
 	CreatedAt pgtype.Timestamp `json:"created_at"`
 	UserID    pgtype.Int8      `json:"user_id"`
 	Uid       pgtype.UUID      `json:"uid"`

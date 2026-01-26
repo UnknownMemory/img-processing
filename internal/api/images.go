@@ -48,35 +48,34 @@ func (app *Application) uploadImageHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	userId := r.Context().Value("user_id").(int64)
+	data := &db.CreateImageParams{
+		UserID:   pgtype.Int8{Int64: userId, Valid: true},
+		Filename: handler.Filename,
+		FileSize: pgtype.Int8{Int64: handler.Size, Valid: true},
+		Mime:     mimeType,
+	}
+
+	q := db.New(app.db)
+	uuid, err := q.CreateImage(context.Background(), *data)
+	if err != nil {
+		app.logger.Println(err)
+		http.Error(w, "An error occurred during the upload", http.StatusInternalServerError)
+		return
+	}
+
 	_, err = file.Seek(0, io.SeekStart)
 	if err != nil {
 		app.logger.Println(err)
 		http.Error(w, "An error occurred during the upload", http.StatusBadRequest)
 	}
 
-	userId := r.Context().Value("user_id").(int64)
-	key := fmt.Sprintf("%d/%s/original", userId, handler.Filename)
+	key := fmt.Sprintf("%d/%s/original", userId, uuid)
+	url := fmt.Sprintf("%s/%s", app.s3.BucketPublicURL, key)
 	_, err = app.s3.Upload(key, file, mimeType)
 	if err != nil {
 		app.logger.Println(err)
 		http.Error(w, "An error occurred during the upload", http.StatusBadRequest)
-		return
-	}
-
-	url := fmt.Sprintf("%s/%s", app.s3.BucketPublicURL, key)
-	data := &db.CreateImageParams{
-		UserID:   pgtype.Int8{Int64: userId, Valid: true},
-		Filename: handler.Filename,
-		FileSize: pgtype.Int8{Int64: handler.Size, Valid: true},
-		Mime:     mimeType,
-		Url:      url,
-	}
-
-	q := db.New(app.db)
-	err = q.CreateImage(context.Background(), *data)
-	if err != nil {
-		app.logger.Println(err)
-		http.Error(w, "An error occurred during the upload", http.StatusInternalServerError)
 		return
 	}
 

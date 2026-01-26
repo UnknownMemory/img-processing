@@ -11,9 +11,10 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const createImage = `-- name: CreateImage :exec
-INSERT INTO images (user_id, filename, file_size, mime, url)
-VALUES ($1, $2, $3, $4, $5)
+const createImage = `-- name: CreateImage :one
+INSERT INTO images (user_id, filename, file_size, mime)
+VALUES ($1, $2, $3, $4)
+RETURNING uid
 `
 
 type CreateImageParams struct {
@@ -21,16 +22,16 @@ type CreateImageParams struct {
 	Filename string      `json:"filename"`
 	FileSize pgtype.Int8 `json:"file_size"`
 	Mime     string      `json:"mime"`
-	Url      string      `json:"url"`
 }
 
-func (q *Queries) CreateImage(ctx context.Context, arg CreateImageParams) error {
-	_, err := q.db.Exec(ctx, createImage,
+func (q *Queries) CreateImage(ctx context.Context, arg CreateImageParams) (pgtype.UUID, error) {
+	row := q.db.QueryRow(ctx, createImage,
 		arg.UserID,
 		arg.Filename,
 		arg.FileSize,
 		arg.Mime,
-		arg.Url,
 	)
-	return err
+	var uid pgtype.UUID
+	err := row.Scan(&uid)
+	return uid, err
 }
