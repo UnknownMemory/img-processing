@@ -18,6 +18,10 @@ body:multipart-form {
   image-upload: @file(C:\Users\tensh\Documents\GitHub\img-processing\1.jpg) @contentType(image/jpeg)
 }
 
+script:post-response {
+  bru.setEnvVar("imageUUID", res.body.imageID)
+}
+
 settings {
   encodeUrl: true
   timeout: 0

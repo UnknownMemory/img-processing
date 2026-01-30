@@ -12,5 +12,7 @@ func (app *Application) Routes() http.Handler {
 	mux.HandleFunc("GET /api/v1/token/refresh", app.refreshTokenHandler)
 
 	mux.Handle("POST /api/v1/images/upload", app.authMiddleware(http.HandlerFunc(app.uploadImageHandler)))
+	mux.Handle("POST /api/v1/images/{id}/transform", app.authMiddleware(http.HandlerFunc(app.transform)))
+
 	return app.secureHeaders(mux)
 }

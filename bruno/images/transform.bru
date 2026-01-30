@@ -1,0 +1,20 @@
+meta {
+  name: transform
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{url_v1}}/images/{{imageUUID}}/transform
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

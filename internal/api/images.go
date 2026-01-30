@@ -80,6 +80,7 @@ func (app *Application) uploadImageHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	fileData := map[string]string{
+		"imageID":  uuid.String(),
 		"filename": handler.Filename,
 		"size":     strconv.FormatInt(handler.Size, 10),
 		"url":      url,
@@ -91,4 +92,8 @@ func (app *Application) uploadImageHandler(w http.ResponseWriter, r *http.Reques
 		http.Error(w, "The server encountered a problem and could not process your request", http.StatusInternalServerError)
 		return
 	}
+}
+
+func (app *Application) transform(w http.ResponseWriter, r *http.Request) {
+
 }

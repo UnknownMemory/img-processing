@@ -46,7 +46,7 @@ func main() {
 		WriteTimeout: 30 * time.Second,
 	}
 
-	logger.Printf("starting %s server on %s", cfg.Mode, server.Addr)
+	logger.Printf("Starting %s server on %s", cfg.Mode, server.Addr)
 	err = server.ListenAndServe()
 	logger.Fatal(err)
 }
