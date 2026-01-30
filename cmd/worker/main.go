@@ -12,11 +12,10 @@ func main() {
 	failOnError(err, "Error loading .env file")
 
 	logger := log.New(os.Stdout, "", log.Ldate|log.Ltime)
+	logger.Printf("Starting worker")
 
 	worker := NewWorker(os.Getenv("RABBIT_MQ"), logger)
 	worker.Connect()
-
-	logger.Printf("Starting worker")
 }
 
 func failOnError(err error, msg string) {

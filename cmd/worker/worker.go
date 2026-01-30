@@ -7,9 +7,8 @@ import (
 )
 
 type Worker struct {
-	RMQ      string
-	logger   *log.Logger
-	amqpConn *amqp.Connection
+	RMQ    string
+	logger *log.Logger
 }
 
 func NewWorker(RMQ string, logger *log.Logger) *Worker {
@@ -33,4 +32,26 @@ func (worker *Worker) Connect() {
 		err := ch.Close()
 		failOnError(err, "Failed to close connection channel")
 	}(ch)
+
+	q, err := ch.QueueDeclare("image", true, false, false, false, nil)
+	if err != nil {
+		worker.logger.Panicf("Failed to declare queue")
+	}
+
+	messages, err := ch.Consume(q.Name, "", false, false, false, false, nil)
+	if err != nil {
+		worker.logger.Panicf("Failed to register a consumer")
+	}
+
+	forever := make(chan bool)
+
+	go worker.Receiver(messages)
+	worker.logger.Println("Waiting for messages")
+	<-forever
+}
+
+func (worker *Worker) Receiver(messages <-chan amqp.Delivery) {
+	for message := range messages {
+		println(message.Body)
+	}
 }
