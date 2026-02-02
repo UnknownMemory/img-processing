@@ -5,13 +5,25 @@ meta {
 }
 
 post {
-  url: {{url_v1}}/images/{{imageUUID}}/transform
+  url: {{url_v1}}/images/transform
   body: json
   auth: bearer
 }
 
 auth:bearer {
   token: {{accessToken}}
+}
+
+body:json {
+  {
+    "image_id": "{{imageUUID}}",
+    "transformations": {
+      "resize": {
+        "width": "150",
+        "height": "150"
+      }
+    }
+  }
 }
 
 settings {

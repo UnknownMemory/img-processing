@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/joho/godotenv"
+	"github.com/unknownmemory/img-processing/internal/rabbitmq"
 )
 
 func main() {
@@ -14,8 +15,8 @@ func main() {
 	logger := log.New(os.Stdout, "", log.Ldate|log.Ltime)
 	logger.Printf("Starting worker")
 
-	worker := NewWorker(os.Getenv("RABBIT_MQ"), logger)
-	worker.Connect()
+	worker := rabbitmq.NewWorker(os.Getenv("RABBIT_MQ"), logger)
+	worker.Listen()
 }
 
 func failOnError(err error, msg string) {

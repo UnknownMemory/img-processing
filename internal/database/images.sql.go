@@ -35,3 +35,56 @@ func (q *Queries) CreateImage(ctx context.Context, arg CreateImageParams) (pgtyp
 	err := row.Scan(&uid)
 	return uid, err
 }
+
+const getImage = `-- name: GetImage :one
+SELECT uid, images.filename, mime, images.file_size, images.created_at
+FROM images
+WHERE user_id = $1 AND uid = $2
+`
+
+type GetImageParams struct {
+	UserID pgtype.Int8 `json:"user_id"`
+	Uid    pgtype.UUID `json:"uid"`
+}
+
+type GetImageRow struct {
+	Uid       pgtype.UUID      `json:"uid"`
+	Filename  string           `json:"filename"`
+	Mime      string           `json:"mime"`
+	FileSize  pgtype.Int8      `json:"file_size"`
+	CreatedAt pgtype.Timestamp `json:"created_at"`
+}
+
+func (q *Queries) GetImage(ctx context.Context, arg GetImageParams) (GetImageRow, error) {
+	row := q.db.QueryRow(ctx, getImage, arg.UserID, arg.Uid)
+	var i GetImageRow
+	err := row.Scan(
+		&i.Uid,
+		&i.Filename,
+		&i.Mime,
+		&i.FileSize,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const imageExists = `-- name: ImageExists :one
+SELECT
+EXISTS(
+    SELECT images.uid
+    FROM images
+    WHERE user_id = $1 AND uid = $2
+)
+`
+
+type ImageExistsParams struct {
+	UserID pgtype.Int8 `json:"user_id"`
+	Uid    pgtype.UUID `json:"uid"`
+}
+
+func (q *Queries) ImageExists(ctx context.Context, arg ImageExistsParams) (bool, error) {
+	row := q.db.QueryRow(ctx, imageExists, arg.UserID, arg.Uid)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}

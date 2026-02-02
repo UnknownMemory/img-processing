@@ -2,15 +2,20 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	db "github.com/unknownmemory/img-processing/internal/database"
+	"github.com/unknownmemory/img-processing/internal/rabbitmq"
+	"github.com/unknownmemory/img-processing/internal/shared"
 )
 
 func (app *Application) uploadImageHandler(w http.ResponseWriter, r *http.Request) {
@@ -95,5 +100,37 @@ func (app *Application) uploadImageHandler(w http.ResponseWriter, r *http.Reques
 }
 
 func (app *Application) transform(w http.ResponseWriter, r *http.Request) {
+	data := &shared.ImageTransform{}
+	err := json.NewDecoder(r.Body).Decode(data)
+	if err != nil {
+		app.logger.Println(err)
+		http.Error(w, "The server encountered a problem and could not process your request", http.StatusInternalServerError)
+		return
+	}
 
+	imageUUID, err := uuid.Parse(data.ImageID)
+	if err != nil {
+		app.logger.Println(err)
+		http.Error(w, "Invalid Image ID", http.StatusInternalServerError)
+		return
+	}
+
+	userId := r.Context().Value("user_id").(int64)
+	q := db.New(app.db)
+	imageQuery := &db.ImageExistsParams{
+		UserID: pgtype.Int8{Int64: userId, Valid: true},
+		Uid:    pgtype.UUID{Bytes: imageUUID, Valid: true},
+	}
+
+	image, err := q.ImageExists(context.Background(), *imageQuery)
+	if err != nil {
+		app.logger.Println(err)
+		http.Error(w, "The server encountered a problem and could not process your request", http.StatusInternalServerError)
+		return
+	}
+
+	if image {
+		rmq := rabbitmq.NewWorker(os.Getenv("RABBIT_MQ"), app.logger)
+		rmq.Send("image", data)
+	}
 }
