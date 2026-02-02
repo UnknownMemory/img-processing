@@ -26,6 +26,7 @@ type Transform struct {
 	Filename      string           `json:"filename"`
 	Mime          string           `json:"mime"`
 	CreatedAt     pgtype.Timestamp `json:"created_at"`
+	Status        string           `json:"status"`
 }
 
 type User struct {
