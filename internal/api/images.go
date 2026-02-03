@@ -111,7 +111,7 @@ func (app *Application) transform(w http.ResponseWriter, r *http.Request) {
 	imageUUID, err := uuid.Parse(data.ImageID)
 	if err != nil {
 		app.logger.Println(err)
-		http.Error(w, "Invalid Image ID", http.StatusInternalServerError)
+		http.Error(w, "Invalid Image ID", http.StatusBadRequest)
 		return
 	}
 
@@ -132,5 +132,36 @@ func (app *Application) transform(w http.ResponseWriter, r *http.Request) {
 	if image {
 		rmq := rabbitmq.NewWorker(os.Getenv("RABBIT_MQ"), app.logger)
 		rmq.Send("image", data)
+	}
+}
+
+func (app *Application) getImage(w http.ResponseWriter, r *http.Request) {
+	uuidParams := r.PathValue("id")
+	userId := r.Context().Value("user_id").(int64)
+
+	imgUUID, err := uuid.Parse(uuidParams)
+	if err != nil {
+		app.logger.Println(err)
+		http.Error(w, "Invalid Image ID", http.StatusBadRequest)
+	}
+
+	q := db.New(app.db)
+	imgParams := &db.GetImageParams{
+		UserID: pgtype.Int8{Int64: userId, Valid: true},
+		Uid:    pgtype.UUID{Bytes: imgUUID, Valid: true},
+	}
+
+	image, err := q.GetImage(context.Background(), *imgParams)
+	if err != nil {
+		app.logger.Println(err)
+		http.Error(w, "The server encountered a problem and could not process your request", http.StatusInternalServerError)
+		return
+	}
+
+	err = app.writeJSON(w, http.StatusCreated, image, nil)
+	if err != nil {
+		app.logger.Println(err)
+		http.Error(w, "The server encountered a problem and could not process your request", http.StatusInternalServerError)
+		return
 	}
 }
