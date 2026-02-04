@@ -12,21 +12,21 @@ type Image struct {
 	ID        int64            `json:"id"`
 	CreatedAt pgtype.Timestamp `json:"created_at"`
 	UserID    pgtype.Int8      `json:"user_id"`
-	Uid       pgtype.UUID      `json:"uid"`
 	Filename  string           `json:"filename"`
 	Mime      string           `json:"mime"`
 	FileSize  pgtype.Int8      `json:"file_size"`
+	Uid       pgtype.UUID      `json:"uid"`
 }
 
 type Transform struct {
 	ID            int64            `json:"id"`
 	Uuid          pgtype.UUID      `json:"uuid"`
-	OriginalImage pgtype.Int8      `json:"original_image"`
 	UserID        pgtype.Int8      `json:"user_id"`
-	Filename      string           `json:"filename"`
-	Mime          string           `json:"mime"`
 	CreatedAt     pgtype.Timestamp `json:"created_at"`
 	Status        string           `json:"status"`
+	Filename      pgtype.Text      `json:"filename"`
+	Mime          pgtype.Text      `json:"mime"`
+	OriginalImage pgtype.UUID      `json:"original_image"`
 }
 
 type User struct {
