@@ -29,7 +29,7 @@ func (app *Application) authMiddleware(next http.Handler) http.Handler {
 				return []byte(os.Getenv("JWT_SECRET_KEY")), nil
 			})
 			if err != nil {
-				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				app.errorResponse(w, r, http.StatusUnauthorized, "Unauthorized")
 				return
 			}
 
@@ -37,14 +37,14 @@ func (app *Application) authMiddleware(next http.Handler) http.Handler {
 
 			if !ok || !token.Valid {
 				app.logger.Println("Token isn't valid")
-				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				app.errorResponse(w, r, http.StatusUnauthorized, "Unauthorized")
 				return
 			}
 
 			sub, ok := claims["sub"].(float64)
 			if !ok {
 				app.logger.Println("Claim sub doesn't exist.")
-				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				app.errorResponse(w, r, http.StatusUnauthorized, "Unauthorized")
 				return
 			}
 			userId := int64(sub)
@@ -54,6 +54,6 @@ func (app *Application) authMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		app.errorResponse(w, r, http.StatusUnauthorized, "Unauthorized")
 	})
 }

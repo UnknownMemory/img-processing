@@ -15,9 +15,7 @@ func (app *Application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 	data := &db.CreateUserParams{}
 	err := json.NewDecoder(r.Body).Decode(data)
 	if err != nil {
-		app.logger.Println(err)
-		http.Error(w, "The server encountered a problem and could not process your request", http.StatusInternalServerError)
-		return
+		app.internalErrorResponse(w, r, err)
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(data.Password), bcrypt.DefaultCost)
@@ -30,10 +28,9 @@ func (app *Application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 	err = q.CreateUser(context.Background(), *data)
 	if err != nil {
 		app.logger.Println(err)
-		http.Error(w, "Could not register user", http.StatusInternalServerError)
-		return
+		app.errorResponse(w, r, http.StatusInternalServerError, "Could not register user")
 	}
-	
+
 	w.WriteHeader(http.StatusCreated)
 }
 
@@ -44,28 +41,24 @@ func (app *Application) loginUserHandler(w http.ResponseWriter, r *http.Request)
 	}{}
 	err := json.NewDecoder(r.Body).Decode(&data)
 	if err != nil {
-		app.logger.Println(err)
-		http.Error(w, "The server encountered a problem and could not process your request", http.StatusInternalServerError)
-		return
+		app.internalErrorResponse(w, r, err)
 	}
 
 	q := db.New(app.db)
 	user, err := q.GetUser(context.Background(), data.Username)
 	if err != nil {
 		app.logger.Println(err)
-		http.Error(w, "Could not find user", http.StatusInternalServerError)
+		app.errorResponse(w, r, http.StatusNotFound, "Could not find user")
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(data.Password))
 	if err != nil {
-		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+		app.errorResponse(w, r, http.StatusUnauthorized, "Invalid credentials")
 	}
 
 	tokens, err := auth.GenerateTokens(user.ID)
 	if err != nil {
-		app.logger.Println(err)
-		http.Error(w, "The server encountered a problem and could not process your request", http.StatusInternalServerError)
-		return
+		app.internalErrorResponse(w, r, err)
 	}
 
 	refreshCookie := http.Cookie{
@@ -80,8 +73,6 @@ func (app *Application) loginUserHandler(w http.ResponseWriter, r *http.Request)
 	jsData := map[string]string{"accessToken": tokens.AccessToken}
 	err = app.writeJSON(w, http.StatusOK, jsData, nil)
 	if err != nil {
-		app.logger.Println(err)
-		http.Error(w, "The server encountered a problem and could not process your request", http.StatusInternalServerError)
-		return
+		app.internalErrorResponse(w, r, err)
 	}
 }

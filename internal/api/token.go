@@ -14,8 +14,7 @@ func (app *Application) refreshTokenHandler(w http.ResponseWriter, r *http.Reque
 	refreshToken, err := r.Cookie("refreshToken")
 
 	if err != nil {
-		app.logger.Println(err)
-		http.Error(w, "Invalid refresh token", http.StatusBadRequest)
+		app.errorResponse(w, r, http.StatusBadRequest, "Invalid refresh token")
 		return
 	}
 	token, err := jwt.Parse(refreshToken.Value, func(token *jwt.Token) (interface{}, error) {
@@ -23,22 +22,19 @@ func (app *Application) refreshTokenHandler(w http.ResponseWriter, r *http.Reque
 	})
 
 	if err != nil {
-		app.logger.Println(err)
-		http.Error(w, "Invalid refresh token", http.StatusBadRequest)
+		app.errorResponse(w, r, http.StatusBadRequest, "Invalid refresh token")
 		return
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok || !token.Valid {
-		app.logger.Println("Invalid refresh token")
-		http.Error(w, "Invalid refresh token", http.StatusBadRequest)
+		app.errorResponse(w, r, http.StatusBadRequest, "Invalid refresh token")
 		return
 	}
 
 	sub, ok := claims["sub"].(float64)
 	if !ok {
-		app.logger.Println("Invalid refresh token")
-		http.Error(w, "Invalid refresh token", http.StatusBadRequest)
+		app.errorResponse(w, r, http.StatusBadRequest, "Invalid refresh token")
 		return
 	}
 
@@ -46,9 +42,7 @@ func (app *Application) refreshTokenHandler(w http.ResponseWriter, r *http.Reque
 
 	tokens, err := auth.GenerateTokens(userId)
 	if err != nil {
-		app.logger.Println(err)
-		http.Error(w, "The server encountered a problem and could not process your request", http.StatusInternalServerError)
-		return
+		app.internalErrorResponse(w, r, err)
 	}
 
 	refreshCookie := http.Cookie{
@@ -64,9 +58,7 @@ func (app *Application) refreshTokenHandler(w http.ResponseWriter, r *http.Reque
 	jsData := map[string]string{"accessToken": tokens.AccessToken}
 	err = app.writeJSON(w, http.StatusOK, jsData, nil)
 	if err != nil {
-		app.logger.Println(err)
-		http.Error(w, "The server encountered a problem and could not process your request", http.StatusInternalServerError)
-		return
+		app.internalErrorResponse(w, r, err)
 	}
 
 }
