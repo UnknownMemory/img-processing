@@ -121,7 +121,7 @@ func (app *Application) transform(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !image {
-		errImg := map[string]string{"error": "Image not found"}
+		errImg := map[string]interface{}{"error": "Image not found"}
 		err = app.writeJSON(w, http.StatusNotFound, errImg, nil)
 		if err != nil {
 			app.internalErrorResponse(w, r, err)
@@ -139,7 +139,7 @@ func (app *Application) transform(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	rmq := rabbitmq.NewWorker(os.Getenv("RABBIT_MQ"), app.logger)
-	rmq.Send("image", data)
+	rmq.Send("image", data, strconv.FormatInt(userId, 10))
 
 	err = app.writeJSON(w, http.StatusAccepted, transform, nil)
 	if err != nil {

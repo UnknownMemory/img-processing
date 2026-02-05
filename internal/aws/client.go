@@ -2,6 +2,7 @@ package aws
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -11,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
 
 type S3Client struct {
@@ -58,4 +60,35 @@ func (s3Client *S3Client) Upload(objectName string, file io.ReadSeeker, contentT
 	}
 
 	return object, nil
+}
+
+func (s3Client *S3Client) GetObject(objectName string) ([]byte, error) {
+	object, err := s3Client.Client.GetObject(context.TODO(), &s3.GetObjectInput{
+		Bucket: aws.String(os.Getenv("S3_BUCKET")),
+		Key:    aws.String(objectName),
+	})
+	if err != nil {
+		var noKey *types.NoSuchKey
+		if errors.As(err, &noKey) {
+			log.Printf("Can't get object %s, no such key exists.\n", objectName)
+			err = noKey
+		} else {
+			log.Printf("Couldn't get object %v. Here's why: %v\n", objectName, err)
+		}
+		return nil, err
+	}
+
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			log.Println(err)
+		}
+	}(object.Body)
+
+	data, err := io.ReadAll(object.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
 }

@@ -6,4 +6,8 @@ type ImageTransform struct {
 }
 
 type Transformations struct {
+	Resize *struct {
+		Width  int `json:"width"`
+		Height int `json:"height"`
+	} `json:"resize"`
 }

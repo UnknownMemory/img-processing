@@ -3,10 +3,14 @@ package rabbitmq
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
+	"github.com/unknownmemory/img-processing/internal/aws"
+	process "github.com/unknownmemory/img-processing/internal/proc"
+	"github.com/unknownmemory/img-processing/internal/shared"
 )
 
 type RabbitMQ struct {
@@ -55,11 +59,23 @@ func (worker *RabbitMQ) Listen() {
 
 func (worker *RabbitMQ) Receiver(messages <-chan amqp.Delivery) {
 	for message := range messages {
-		println(message.Body)
+		data := &shared.ImageTransform{}
+		_ = json.Unmarshal(message.Body, &data)
+
+		key := fmt.Sprintf("%v/%s/original", message.Headers["userId"], data.ImageID)
+		awsCli := aws.NewS3Client()
+		object, err := awsCli.GetObject(key)
+		if err != nil {
+			return
+		}
+		transform, err := process.Transform(object, data.Transformations)
+		if err != nil {
+			return
+		}
 	}
 }
 
-func (worker *RabbitMQ) Send(queueName string, data any) {
+func (worker *RabbitMQ) Send(queueName string, data interface{}, userId string) {
 	body, err := json.Marshal(data)
 	if err != nil {
 		failOnError(err, "Failed to marshal data")
@@ -95,6 +111,7 @@ func (worker *RabbitMQ) Send(queueName string, data any) {
 		amqp.Publishing{
 			ContentType: "application/json",
 			Body:        body,
+			Headers:     amqp.Table{"userId": userId},
 		})
 	failOnError(err, "Failed to publish a message")
 }
