@@ -1,6 +1,7 @@
 package rabbitmq
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -68,14 +69,20 @@ func (worker *RabbitMQ) Receiver(messages <-chan amqp.Delivery) {
 		if err != nil {
 			return
 		}
-		transform, err := process.Transform(object, data.Transformations)
+		transform, mime, err := process.Transform(object, data.Transformations)
+		if err != nil {
+			return
+		}
+
+		transformKey := fmt.Sprintf("%v/%s/image", message.Headers["userId"], message.Headers["uuid"])
+		_, err = awsCli.Upload(transformKey, bytes.NewReader(transform), mime)
 		if err != nil {
 			return
 		}
 	}
 }
 
-func (worker *RabbitMQ) Send(queueName string, data interface{}, userId string) {
+func (worker *RabbitMQ) Send(queueName string, data interface{}, userId string, transformUUID string) {
 	body, err := json.Marshal(data)
 	if err != nil {
 		failOnError(err, "Failed to marshal data")
@@ -111,7 +118,7 @@ func (worker *RabbitMQ) Send(queueName string, data interface{}, userId string) 
 		amqp.Publishing{
 			ContentType: "application/json",
 			Body:        body,
-			Headers:     amqp.Table{"userId": userId},
+			Headers:     amqp.Table{"userId": userId, "uuid": transformUUID},
 		})
 	failOnError(err, "Failed to publish a message")
 }
