@@ -18,12 +18,13 @@ body:json {
   {
     "image_id": "{{imageUUID}}",
     "transformations": {
-      "resize": {
-        "width": "150",
-        "height": "150"
-      }
+      "resize": 0.5
     }
   }
+}
+
+vars:pre-request {
+  imageUUID: 
 }
 
 settings {

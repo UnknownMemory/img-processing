@@ -33,3 +33,26 @@ func (q *Queries) CreateTransform(ctx context.Context, arg CreateTransformParams
 	err := row.Scan(&i.Uuid, &i.Status)
 	return i, err
 }
+
+const updateTransform = `-- name: UpdateTransform :exec
+UPDATE transform
+SET status = $1, mime = $2
+WHERE uuid = $3 and user_id =$4
+`
+
+type UpdateTransformParams struct {
+	Status string      `json:"status"`
+	Mime   pgtype.Text `json:"mime"`
+	Uuid   pgtype.UUID `json:"uuid"`
+	UserID pgtype.Int8 `json:"user_id"`
+}
+
+func (q *Queries) UpdateTransform(ctx context.Context, arg UpdateTransformParams) error {
+	_, err := q.db.Exec(ctx, updateTransform,
+		arg.Status,
+		arg.Mime,
+		arg.Uuid,
+		arg.UserID,
+	)
+	return err
+}

@@ -138,8 +138,8 @@ func (app *Application) transform(w http.ResponseWriter, r *http.Request) {
 		app.internalErrorResponse(w, r, err)
 		return
 	}
-	
-	rmq := rabbitmq.NewWorker(os.Getenv("RABBIT_MQ"), app.logger)
+
+	rmq := rabbitmq.NewWorker(os.Getenv("RABBIT_MQ"), app.logger, nil)
 	rmq.Send("image", data, strconv.FormatInt(userId, 10), transform.Uuid.String())
 
 	err = app.writeJSON(w, http.StatusAccepted, transform, nil)

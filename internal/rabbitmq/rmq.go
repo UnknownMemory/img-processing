@@ -6,10 +6,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/jackc/pgx/v5/pgxpool"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/unknownmemory/img-processing/internal/aws"
+	db "github.com/unknownmemory/img-processing/internal/database"
 	process "github.com/unknownmemory/img-processing/internal/proc"
 	"github.com/unknownmemory/img-processing/internal/shared"
 )
@@ -17,12 +22,14 @@ import (
 type RabbitMQ struct {
 	RMQ    string
 	logger *log.Logger
+	db     *pgxpool.Pool
 }
 
-func NewWorker(RMQ string, logger *log.Logger) *RabbitMQ {
+func NewWorker(RMQ string, logger *log.Logger, db *pgxpool.Pool) *RabbitMQ {
 	return &RabbitMQ{
 		RMQ:    RMQ,
 		logger: logger,
+		db:     db,
 	}
 }
 
@@ -76,6 +83,30 @@ func (worker *RabbitMQ) Receiver(messages <-chan amqp.Delivery) {
 
 		transformKey := fmt.Sprintf("%v/%s/image", message.Headers["userId"], message.Headers["uuid"])
 		_, err = awsCli.Upload(transformKey, bytes.NewReader(transform), mime)
+		if err != nil {
+			return
+		}
+
+		imageUUID, err := uuid.Parse(message.Headers["uuid"].(string))
+		if err != nil {
+			return
+		}
+
+		userId := message.Headers["userId"].(string)
+		uId, err := strconv.ParseInt(userId, 10, 64)
+		if err != nil {
+			return
+		}
+
+		q := db.New(worker.db)
+		transformQuery := &db.UpdateTransformParams{
+			Status: "completed",
+			Mime:   pgtype.Text{String: mime, Valid: true},
+			Uuid:   pgtype.UUID{Bytes: imageUUID, Valid: true},
+			UserID: pgtype.Int8{Int64: uId, Valid: true},
+		}
+
+		err = q.UpdateTransform(context.Background(), *transformQuery)
 		if err != nil {
 			return
 		}

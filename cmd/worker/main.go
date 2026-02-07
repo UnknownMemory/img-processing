@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	"log"
 	"os"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 	"github.com/unknownmemory/img-processing/internal/rabbitmq"
 )
@@ -15,7 +17,14 @@ func main() {
 	logger := log.New(os.Stdout, "", log.Ldate|log.Ltime)
 	logger.Printf("Starting worker")
 
-	worker := rabbitmq.NewWorker(os.Getenv("RABBIT_MQ"), logger)
+	db, err := pgxpool.New(context.Background(), os.Getenv("DB_DSN"))
+	if err != nil {
+		log.Fatalf("Unable to create connection pool: %v\n", err)
+	}
+
+	defer db.Close()
+
+	worker := rabbitmq.NewWorker(os.Getenv("RABBIT_MQ"), logger, db)
 	worker.Listen()
 }
 
