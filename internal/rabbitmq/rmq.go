@@ -53,6 +53,9 @@ func (worker *RabbitMQ) Listen() {
 		worker.logger.Panicf("Failed to declare queue")
 	}
 
+	err = ch.Qos(1, 0, false)
+	failOnError(err, "Failed to set QoS")
+	
 	messages, err := ch.Consume(q.Name, "", false, false, false, false, nil)
 	if err != nil {
 		worker.logger.Panicf("Failed to register a consumer")
@@ -110,6 +113,12 @@ func (worker *RabbitMQ) Receiver(messages <-chan amqp.Delivery) {
 		if err != nil {
 			return
 		}
+
+		err = message.Ack(false)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
 	}
 }
 
@@ -147,9 +156,10 @@ func (worker *RabbitMQ) Send(queueName string, data interface{}, userId string, 
 		false,
 		false,
 		amqp.Publishing{
-			ContentType: "application/json",
-			Body:        body,
-			Headers:     amqp.Table{"userId": userId, "uuid": transformUUID},
+			ContentType:  "application/json",
+			Body:         body,
+			Headers:      amqp.Table{"userId": userId, "uuid": transformUUID},
+			DeliveryMode: amqp.Persistent,
 		})
 	failOnError(err, "Failed to publish a message")
 }
