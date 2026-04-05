@@ -20,43 +20,56 @@ import (
 )
 
 type RabbitMQ struct {
-	RMQ    string
+	conn   *amqp.Connection
+	ch     *amqp.Channel
 	logger *log.Logger
 	db     *pgxpool.Pool
 }
 
-func NewWorker(RMQ string, logger *log.Logger, db *pgxpool.Pool) *RabbitMQ {
+func NewWorker(RMQ string, logger *log.Logger, db *pgxpool.Pool) (*RabbitMQ, error) {
+	conn, err := amqp.Dial(RMQ)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to RabbitMQ: %w", err)
+	}
+
+	ch, err := conn.Channel()
+	if err != nil {
+		return nil, fmt.Errorf("failed to open channel: %w", err)
+	}
+
 	return &RabbitMQ{
-		RMQ:    RMQ,
+		conn:   conn,
+		ch:     ch,
 		logger: logger,
 		db:     db,
+	}, nil
+}
+
+func (worker *RabbitMQ) Close() {
+	if worker.ch != nil {
+		if err := worker.ch.Close(); err != nil {
+			worker.logger.Printf("failed to close channel: %s", err)
+		}
+	}
+
+	if worker.conn != nil {
+		if err := worker.conn.Close(); err != nil {
+			worker.logger.Printf("failed to close connection: %s", err)
+		}
 	}
 }
 
 func (worker *RabbitMQ) Listen() {
-	conn, err := amqp.Dial(worker.RMQ)
-	failOnError(err, "Failed to connect to RabbitMQ")
 
-	defer func(conn *amqp.Connection) {
-		err := conn.Close()
-		failOnError(err, "Failed to close AMQP connection")
-	}(conn)
-
-	ch, _ := conn.Channel()
-	defer func(ch *amqp.Channel) {
-		err := ch.Close()
-		failOnError(err, "Failed to close connection channel")
-	}(ch)
-
-	q, err := ch.QueueDeclare("image", true, false, false, false, nil)
+	q, err := worker.ch.QueueDeclare("image", true, false, false, false, nil)
 	if err != nil {
 		worker.logger.Panicf("Failed to declare queue")
 	}
 
-	err = ch.Qos(1, 0, false)
+	err = worker.ch.Qos(1, 0, false)
 	failOnError(err, "Failed to set QoS")
-	
-	messages, err := ch.Consume(q.Name, "", false, false, false, false, nil)
+
+	messages, err := worker.ch.Consume(q.Name, "", false, false, false, false, nil)
 	if err != nil {
 		worker.logger.Panicf("Failed to register a consumer")
 	}
@@ -128,21 +141,7 @@ func (worker *RabbitMQ) Send(queueName string, data interface{}, userId string, 
 		failOnError(err, "Failed to marshal data")
 	}
 
-	conn, err := amqp.Dial(worker.RMQ)
-	failOnError(err, "Failed to connect to RabbitMQ")
-
-	defer func(conn *amqp.Connection) {
-		err := conn.Close()
-		failOnError(err, "Failed to close AMQP connection")
-	}(conn)
-
-	ch, _ := conn.Channel()
-	defer func(ch *amqp.Channel) {
-		err := ch.Close()
-		failOnError(err, "Failed to close connection channel")
-	}(ch)
-
-	q, err := ch.QueueDeclare(queueName, true, false, false, false, nil)
+	q, err := worker.ch.QueueDeclare(queueName, true, false, false, false, nil)
 	if err != nil {
 		worker.logger.Panicf("Failed to declare queue")
 	}
@@ -150,7 +149,7 @@ func (worker *RabbitMQ) Send(queueName string, data interface{}, userId string, 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	err = ch.PublishWithContext(ctx,
+	err = worker.ch.PublishWithContext(ctx,
 		"",
 		q.Name,
 		false,

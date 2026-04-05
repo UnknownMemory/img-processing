@@ -37,9 +37,15 @@ func (q *Queries) CreateImage(ctx context.Context, arg CreateImageParams) (pgtyp
 }
 
 const getImage = `-- name: GetImage :one
-SELECT uid, images.filename, mime, images.file_size, images.created_at
+SELECT images.uid, images.filename, images.mime, NULL as status, images.created_at
 FROM images
-WHERE user_id = $1 AND uid = $2
+WHERE images.user_id = $1 AND images.uid = $2
+
+UNION
+
+SELECT transform.uuid, transform.filename, transform.mime, transform.status, transform.created_at
+FROM transform
+WHERE transform.user_id = $1 AND transform.uuid = $2
 `
 
 type GetImageParams struct {
@@ -51,7 +57,7 @@ type GetImageRow struct {
 	Uid       pgtype.UUID      `json:"uid"`
 	Filename  string           `json:"filename"`
 	Mime      string           `json:"mime"`
-	FileSize  pgtype.Int8      `json:"file_size"`
+	Status    interface{}      `json:"status"`
 	CreatedAt pgtype.Timestamp `json:"created_at"`
 }
 
@@ -62,7 +68,7 @@ func (q *Queries) GetImage(ctx context.Context, arg GetImageParams) (GetImageRow
 		&i.Uid,
 		&i.Filename,
 		&i.Mime,
-		&i.FileSize,
+		&i.Status,
 		&i.CreatedAt,
 	)
 	return i, err

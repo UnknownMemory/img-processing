@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 	"github.com/unknownmemory/img-processing/internal/api"
+	"github.com/unknownmemory/img-processing/internal/rabbitmq"
 )
 
 const version = "0.1.0"
@@ -36,7 +37,13 @@ func main() {
 
 	defer db.Close()
 
-	app := api.NewApplication(cfg, logger, db, version)
+	rmq, err := rabbitmq.NewWorker(os.Getenv("RABBIT_MQ"), logger, db)
+	if err != nil {
+		log.Fatalf("Unable to connect to RabbitMQ: %v\n", err)
+	}
+	defer rmq.Close()
+
+	app := api.NewApplication(cfg, logger, db, rmq, version)
 
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Port),

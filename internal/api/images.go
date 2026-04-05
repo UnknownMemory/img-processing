@@ -7,14 +7,12 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	db "github.com/unknownmemory/img-processing/internal/database"
-	"github.com/unknownmemory/img-processing/internal/rabbitmq"
 	"github.com/unknownmemory/img-processing/internal/shared"
 )
 
@@ -139,8 +137,7 @@ func (app *Application) transform(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rmq := rabbitmq.NewWorker(os.Getenv("RABBIT_MQ"), app.logger, nil)
-	rmq.Send("image", data, strconv.FormatInt(userId, 10), transform.Uuid.String())
+	app.rmq.Send("image", data, strconv.FormatInt(userId, 10), transform.Uuid.String())
 
 	err = app.writeJSON(w, http.StatusAccepted, transform, nil)
 	if err != nil {

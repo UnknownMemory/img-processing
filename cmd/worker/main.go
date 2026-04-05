@@ -24,7 +24,12 @@ func main() {
 
 	defer db.Close()
 
-	worker := rabbitmq.NewWorker(os.Getenv("RABBIT_MQ"), logger, db)
+	worker, err := rabbitmq.NewWorker(os.Getenv("RABBIT_MQ"), logger, db)
+	if err != nil {
+		log.Fatalf("Unable to connect to RabbitMQ: %v\n", err)
+	}
+	defer worker.Close()
+
 	worker.Listen()
 }
 
