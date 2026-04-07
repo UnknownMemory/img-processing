@@ -174,3 +174,20 @@ func (app *Application) getImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+
+func (app *Application) ListImages(w http.ResponseWriter, r *http.Request) {
+	userId := r.Context().Value("user_id").(int64)
+
+	q := db.New(app.db)
+	images, err := q.ListImages(context.Background(), pgtype.Int8{Int64: userId, Valid: true})
+	if err != nil {
+		app.internalErrorResponse(w, r, err)
+		return
+	}
+
+	err = app.writeJSON(w, http.StatusOK, images, nil)
+	if err != nil {
+		app.internalErrorResponse(w, r, err)
+		return
+	}
+}

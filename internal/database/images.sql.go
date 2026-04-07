@@ -94,3 +94,46 @@ func (q *Queries) ImageExists(ctx context.Context, arg ImageExistsParams) (bool,
 	err := row.Scan(&exists)
 	return exists, err
 }
+
+const listImages = `-- name: ListImages :many
+SELECT images.uid, images.filename, images.mime, images.created_at, transform.uuid AS transformed_uuid, transform.status
+FROM images
+LEFT JOIN transform ON images.uid = transform.original_image
+WHERE images.user_id = $1
+`
+
+type ListImagesRow struct {
+	Uid             pgtype.UUID      `json:"uid"`
+	Filename        string           `json:"filename"`
+	Mime            string           `json:"mime"`
+	CreatedAt       pgtype.Timestamp `json:"created_at"`
+	TransformedUuid pgtype.UUID      `json:"transformed_uuid"`
+	Status          pgtype.Text      `json:"status"`
+}
+
+func (q *Queries) ListImages(ctx context.Context, userID pgtype.Int8) ([]ListImagesRow, error) {
+	rows, err := q.db.Query(ctx, listImages, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListImagesRow
+	for rows.Next() {
+		var i ListImagesRow
+		if err := rows.Scan(
+			&i.Uid,
+			&i.Filename,
+			&i.Mime,
+			&i.CreatedAt,
+			&i.TransformedUuid,
+			&i.Status,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

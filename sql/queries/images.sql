@@ -21,3 +21,9 @@ EXISTS(
     FROM images
     WHERE user_id = $1 AND uid = $2
 );
+
+-- name: ListImages :many
+SELECT images.uid, images.filename, images.mime, images.created_at, transform.uuid AS transformed_uuid, transform.status
+FROM images
+LEFT JOIN transform ON images.uid = transform.original_image
+WHERE images.user_id = $1;
