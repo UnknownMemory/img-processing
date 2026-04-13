@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -11,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	db "github.com/unknownmemory/img-processing/internal/database"
 	"github.com/unknownmemory/img-processing/internal/shared"
@@ -107,29 +109,29 @@ func (app *Application) transform(w http.ResponseWriter, r *http.Request) {
 
 	userId := r.Context().Value("user_id").(int64)
 	q := db.New(app.db)
-	imageQuery := &db.ImageExistsParams{
+	imageQuery := &db.GetImageParams{
 		UserID: pgtype.Int8{Int64: userId, Valid: true},
 		Uid:    pgtype.UUID{Bytes: imageUUID, Valid: true},
 	}
 
-	image, err := q.ImageExists(context.Background(), *imageQuery)
+	image, err := q.GetImage(context.Background(), *imageQuery)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			errImg := map[string]interface{}{"error": "Image not found"}
+			err = app.writeJSON(w, http.StatusNotFound, errImg, nil)
+			if err != nil {
+				app.internalErrorResponse(w, r, err)
+				return
+			}
+		}
 		app.internalErrorResponse(w, r, err)
 		return
-	}
-
-	if !image {
-		errImg := map[string]interface{}{"error": "Image not found"}
-		err = app.writeJSON(w, http.StatusNotFound, errImg, nil)
-		if err != nil {
-			app.internalErrorResponse(w, r, err)
-			return
-		}
 	}
 
 	transformParams := &db.CreateTransformParams{
 		OriginalImage: pgtype.UUID{Bytes: imageUUID, Valid: true},
 		UserID:        pgtype.Int8{Int64: userId, Valid: true},
+		Filename:      pgtype.Text{String: image.Filename, Valid: true},
 	}
 	transform, err := q.CreateTransform(context.Background(), *transformParams)
 	if err != nil {

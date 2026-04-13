@@ -1,6 +1,6 @@
 -- name: CreateTransform :one
-INSERT INTO transform (original_image, user_id)
-VALUES ($1, $2)
+INSERT INTO transform (original_image, user_id, filename)
+VALUES ($1, $2, $3)
 RETURNING uuid, status;
 
 -- name: UpdateTransform :exec

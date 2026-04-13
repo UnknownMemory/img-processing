@@ -12,14 +12,15 @@ import (
 )
 
 const createTransform = `-- name: CreateTransform :one
-INSERT INTO transform (original_image, user_id)
-VALUES ($1, $2)
+INSERT INTO transform (original_image, user_id, filename)
+VALUES ($1, $2, $3)
 RETURNING uuid, status
 `
 
 type CreateTransformParams struct {
 	OriginalImage pgtype.UUID `json:"original_image"`
 	UserID        pgtype.Int8 `json:"user_id"`
+	Filename      pgtype.Text `json:"filename"`
 }
 
 type CreateTransformRow struct {
@@ -28,7 +29,7 @@ type CreateTransformRow struct {
 }
 
 func (q *Queries) CreateTransform(ctx context.Context, arg CreateTransformParams) (CreateTransformRow, error) {
-	row := q.db.QueryRow(ctx, createTransform, arg.OriginalImage, arg.UserID)
+	row := q.db.QueryRow(ctx, createTransform, arg.OriginalImage, arg.UserID, arg.Filename)
 	var i CreateTransformRow
 	err := row.Scan(&i.Uuid, &i.Status)
 	return i, err
