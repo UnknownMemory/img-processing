@@ -6,5 +6,5 @@ bin
 tmp
 *.exe
 
-.env
+.env*
 garage.toml

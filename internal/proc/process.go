@@ -1,7 +1,7 @@
 package process
 
 import (
-	"github.com/cshum/vipsgen/vips"
+	vips "github.com/cshum/vipsgen/vips816"
 	"github.com/unknownmemory/img-processing/internal/shared"
 )
 
