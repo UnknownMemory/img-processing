@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 	"github.com/unknownmemory/img-processing/internal/api"
+	db "github.com/unknownmemory/img-processing/internal/database"
 	"github.com/unknownmemory/img-processing/internal/rabbitmq"
 )
 
@@ -30,20 +31,20 @@ func main() {
 
 	logger := log.New(os.Stdout, "", log.Ldate|log.Ltime)
 
-	db, err := pgxpool.New(context.Background(), cfg.DB.DSN)
+	dbPool, err := pgxpool.New(context.Background(), cfg.DB.DSN)
 	if err != nil {
 		log.Fatalf("Unable to create connection pool: %v\n", err)
 	}
+	defer dbPool.Close()
 
-	defer db.Close()
-
-	rmq, err := rabbitmq.NewWorker(os.Getenv("RABBIT_MQ"), logger, db)
+	database := db.New(dbPool)
+	rmq, err := rabbitmq.NewWorker(os.Getenv("RABBIT_MQ"), logger, nil, nil, database)
 	if err != nil {
 		log.Fatalf("Unable to connect to RabbitMQ: %v\n", err)
 	}
 	defer rmq.Close()
 
-	app := api.NewApplication(cfg, logger, db, rmq, version)
+	app := api.NewApplication(cfg, logger, dbPool, rmq, version)
 
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Port),

@@ -5,7 +5,13 @@ import (
 	"github.com/unknownmemory/img-processing/internal/shared"
 )
 
-func Transform(object []byte, operations shared.Transformations) ([]byte, string, error) {
+type Processor struct{}
+
+func NewProcessor() *Processor {
+	return &Processor{}
+}
+
+func (p *Processor) Transform(object []byte, operations shared.Transformations) ([]byte, string, error) {
 	img, err := vips.NewImageFromBuffer(object, nil)
 	if err != nil {
 		return nil, "", err

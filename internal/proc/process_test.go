@@ -17,8 +17,9 @@ func TestTransform(t *testing.T) {
 
 	t.Run("Resize", func(t *testing.T) {
 		resize := 0.5
+		proc := NewProcessor()
 
-		buffer, _, err := Transform(input, shared.Transformations{
+		buffer, _, err := proc.Transform(input, shared.Transformations{
 			Resize: &resize,
 		})
 		if err != nil {

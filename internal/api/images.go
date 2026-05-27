@@ -72,7 +72,7 @@ func (app *Application) uploadImageHandler(w http.ResponseWriter, r *http.Reques
 
 	key := fmt.Sprintf("%d/%s/original", userId, imgUUID)
 	url := fmt.Sprintf("%s/%s", app.s3.BucketPublicURL, key)
-	_, err = app.s3.Upload(key, file, mimeType)
+	err = app.s3.Upload(key, file, mimeType)
 	if err != nil {
 		app.errorResponse(w, r, http.StatusBadRequest, "An error occurred during the upload")
 		return

@@ -4,9 +4,13 @@ import (
 	"context"
 	"log"
 	"os"
+	"strconv"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
+	"github.com/unknownmemory/img-processing/internal/aws"
+	db "github.com/unknownmemory/img-processing/internal/database"
+	process "github.com/unknownmemory/img-processing/internal/proc"
 	"github.com/unknownmemory/img-processing/internal/rabbitmq"
 )
 
@@ -17,20 +21,28 @@ func main() {
 	logger := log.New(os.Stdout, "", log.Ldate|log.Ltime)
 	logger.Printf("Starting worker")
 
-	db, err := pgxpool.New(context.Background(), os.Getenv("DB_DSN"))
+	dbPool, err := pgxpool.New(context.Background(), os.Getenv("DB_DSN"))
 	if err != nil {
 		log.Fatalf("Unable to create connection pool: %v\n", err)
 	}
+	defer dbPool.Close()
 
-	defer db.Close()
+	storage := aws.NewS3Client()
+	proc := process.NewProcessor()
+	database := db.New(dbPool)
 
-	worker, err := rabbitmq.NewWorker(os.Getenv("RABBIT_MQ"), logger, db)
+	worker, err := rabbitmq.NewWorker(os.Getenv("RABBIT_MQ"), logger, storage, proc, database)
 	if err != nil {
 		log.Fatalf("Unable to connect to RabbitMQ: %v\n", err)
 	}
 	defer worker.Close()
 
-	worker.Listen()
+	workerPool, err := strconv.Atoi(os.Getenv("WORKER_POOL"))
+	if err != nil {
+		log.Fatalf("Unable to parse WORKER_POOL: %v\n", err)
+	}
+
+	worker.Listen(workerPool)
 }
 
 func failOnError(err error, msg string) {

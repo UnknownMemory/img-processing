@@ -47,8 +47,8 @@ func NewS3Client() *S3Client {
 	}
 }
 
-func (s3Client *S3Client) Upload(objectName string, file io.ReadSeeker, contentType string) (*s3.PutObjectOutput, error) {
-	object, err := s3Client.Client.PutObject(context.TODO(), &s3.PutObjectInput{
+func (s3Client *S3Client) Upload(objectName string, file io.ReadSeeker, contentType string) error {
+	_, err := s3Client.Client.PutObject(context.TODO(), &s3.PutObjectInput{
 		Bucket:      aws.String(os.Getenv("S3_BUCKET")),
 		Key:         aws.String(objectName),
 		Body:        file,
@@ -56,10 +56,10 @@ func (s3Client *S3Client) Upload(objectName string, file io.ReadSeeker, contentT
 	})
 	if err != nil {
 		log.Println(err)
-		return nil, err
+		return err
 	}
 
-	return object, nil
+	return nil
 }
 
 func (s3Client *S3Client) GetObject(objectName string) ([]byte, error) {
