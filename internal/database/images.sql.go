@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/jackc/pgx/v5/pgtype"
 )
@@ -37,13 +38,13 @@ func (q *Queries) CreateImage(ctx context.Context, arg CreateImageParams) (pgtyp
 }
 
 const getImage = `-- name: GetImage :one
-SELECT images.uid, images.filename, images.mime, NULL as status, images.created_at
+SELECT images.uid as id, images.filename, images.mime, NULL as status, images.created_at
 FROM images
 WHERE images.user_id = $1 AND images.uid = $2
 
 UNION
 
-SELECT transform.uuid, transform.filename, transform.mime, transform.status, transform.created_at
+SELECT transform.uuid as id, transform.filename, transform.mime, transform.status, transform.created_at
 FROM transform
 WHERE transform.user_id = $1 AND transform.uuid = $2
 `
@@ -54,7 +55,7 @@ type GetImageParams struct {
 }
 
 type GetImageRow struct {
-	Uid       pgtype.UUID      `json:"uid"`
+	ID        pgtype.UUID      `json:"id"`
 	Filename  string           `json:"filename"`
 	Mime      string           `json:"mime"`
 	Status    interface{}      `json:"status"`
@@ -65,7 +66,7 @@ func (q *Queries) GetImage(ctx context.Context, arg GetImageParams) (GetImageRow
 	row := q.db.QueryRow(ctx, getImage, arg.UserID, arg.Uid)
 	var i GetImageRow
 	err := row.Scan(
-		&i.Uid,
+		&i.ID,
 		&i.Filename,
 		&i.Mime,
 		&i.Status,
@@ -96,19 +97,19 @@ func (q *Queries) ImageExists(ctx context.Context, arg ImageExistsParams) (bool,
 }
 
 const listImages = `-- name: ListImages :many
-SELECT images.uid, images.filename, images.mime, images.created_at, transform.uuid AS transformed_uuid, transform.status
+SELECT images.uid as id, images.filename, images.mime, images.created_at, jsonb_agg(jsonb_build_object('id', transform.uuid, 'status', transform.status)) as transforms
 FROM images
 LEFT JOIN transform ON images.uid = transform.original_image
 WHERE images.user_id = $1
+GROUP BY images.uid, images.filename, images.mime, images.created_at
 `
 
 type ListImagesRow struct {
-	Uid             pgtype.UUID      `json:"uid"`
-	Filename        string           `json:"filename"`
-	Mime            string           `json:"mime"`
-	CreatedAt       pgtype.Timestamp `json:"created_at"`
-	TransformedUuid pgtype.UUID      `json:"transformed_uuid"`
-	Status          pgtype.Text      `json:"status"`
+	ID         pgtype.UUID      `json:"id"`
+	Filename   string           `json:"filename"`
+	Mime       string           `json:"mime"`
+	CreatedAt  pgtype.Timestamp `json:"created_at"`
+	Transforms json.RawMessage  `json:"transforms"`
 }
 
 func (q *Queries) ListImages(ctx context.Context, userID pgtype.Int8) ([]ListImagesRow, error) {
@@ -121,12 +122,11 @@ func (q *Queries) ListImages(ctx context.Context, userID pgtype.Int8) ([]ListIma
 	for rows.Next() {
 		var i ListImagesRow
 		if err := rows.Scan(
-			&i.Uid,
+			&i.ID,
 			&i.Filename,
 			&i.Mime,
 			&i.CreatedAt,
-			&i.TransformedUuid,
-			&i.Status,
+			&i.Transforms,
 		); err != nil {
 			return nil, err
 		}
