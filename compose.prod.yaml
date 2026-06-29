@@ -1,0 +1,42 @@
+name: img-processing-prod
+
+services:
+  api:
+    build:
+      context: .
+      target: api
+    expose:
+      - "8080"
+    env_file:
+      - .env.prod
+    restart: unless-stopped
+    networks:
+      - img-processing
+
+  worker:
+    build:
+      context: .
+      target: worker
+    env_file:
+      - .env.prod
+    restart: unless-stopped
+    networks:
+      - img-processing
+  caddy:
+    image: caddy:2.11-alpine
+    ports:
+    - "80:80"
+    - "443:443"
+    volumes:
+      - ./caddy_data:/data
+      - ./caddy_config:/config
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    restart: unless-stopped
+    depends_on:
+      - api
+    networks:
+      - img-processing
+
+networks:
+  img-processing:
+    external: true

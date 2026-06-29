@@ -8,3 +8,5 @@ tmp
 
 .env*
 garage.toml
+caddy_config
+caddy_data

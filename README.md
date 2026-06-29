@@ -40,12 +40,5 @@ air -c .\.air.worker.toml
 
 ### Build
 ```shell
-docker build --target api -t img-processing-api . 
-docker build --target worker -t img-processing-worker .
-```
-
-Run the services
-```shell
-docker run -d --name img-processing-api --network img-processing_default -p 8080:8080 img-processing-api
-docker run -d --name img-processing-worker --network img-processing_default img-processing-worker
+docker-compose -f compose.prod.yaml up -d --build --no-deps --force-recreate
 ```

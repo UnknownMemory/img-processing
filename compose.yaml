@@ -12,6 +12,8 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
+    networks:
+      - img-processing
   
   rabbitmq:
     image: rabbitmq:4.2-management
@@ -24,6 +26,8 @@ services:
     volumes:
       - rabbitmq_data:/data
     restart: unless-stopped
+    networks:
+      - img-processing
 
   garage:
     image: dxflrs/garage:v2.1.0
@@ -36,6 +40,8 @@ services:
       - garage_meta:/var/lib/garage/meta/
       - garage_data:/var/lib/garage/data/
     restart: unless-stopped
+    networks:
+      - img-processing
 
 
 volumes:
@@ -43,3 +49,7 @@ volumes:
   rabbitmq_data:
   garage_meta:
   garage_data:
+
+networks:
+  img-processing:
+    external: true
